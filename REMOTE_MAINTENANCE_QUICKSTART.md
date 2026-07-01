@@ -102,6 +102,45 @@ ssh root@100.64.10.25
 ./scripts/remote_logs.ps1 -TargetHost 100.64.10.25 -Project all -NoFollow
 ```
 
+## 6.1) Команды одной кнопкой (копировать как есть)
+
+Ниже команды для PowerShell на ноутбуке. Выполняйте по одной.
+
+### Подготовка сессии
+
+```powershell
+cd D:\projects\sdr\sdr_rf_analyzer
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+```
+
+### Проверка удаленных логов RF (10-20 строк и Ctrl+C)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote_logs.ps1 -TargetHost 100.70.123.76 -Project rf
+```
+
+### Обновить только RF
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote_update.ps1 -TargetHost 100.70.123.76 -Project rf -Branch main
+```
+
+### Обновить RF + Acoustic
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote_update.ps1 -TargetHost 100.70.123.76 -Project all -Branch main
+```
+
+### Если на Orange Pi еще нет git-копии RF-проекта
+
+```powershell
+ssh root@100.70.123.76
+mkdir -p /opt/skyshield
+cd /opt/skyshield
+git clone https://github.com/alekseey2907/sdr_proj.git .
+exit
+```
+
 ## 7) Что требуется от вас
 
 1. Установить Tailscale на ноутбук и на каждую Orange Pi.
