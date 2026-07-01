@@ -1,0 +1,16 @@
+[Unit]
+Description=SkyShield RTL-SDR Worker
+After=network-online.target skyshield-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/skyshield
+EnvironmentFile=-/etc/skyshield/skyshield.env
+ExecStart=/opt/skyshield/scripts/run_sdr_worker.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

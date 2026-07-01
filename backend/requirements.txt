@@ -1,0 +1,15 @@
+# Backend
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Database
+sqlalchemy>=2.0.25
+asyncpg>=0.29.0
+aiosqlite>=0.20.0
+alembic>=1.13.1
+
+# Reports
+reportlab>=4.0.0
+matplotlib>=3.7.0

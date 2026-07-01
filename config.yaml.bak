@@ -1,0 +1,54 @@
+device:
+  type: rtlsdr
+  sample_rate: 2500000.0  # 2 МГц - максимум для FC0012
+  gain: 0
+  ppm_correction: 0
+  device_index: 0
+
+ranges:
+  - name: ISM 433.92 (Static)
+    start_freq: 433500000.0  # 433.9 МГц
+    stop_freq: 435900000.0   # 435.9 МГц (полоса 2 МГц)
+    threshold_db: -60.0
+    min_duration_ms: 50.0
+    enabled: true
+
+  # Wide scanning (hopping) is unstable on this FC0012 device
+  # - name: Wide Scan 80MHz
+  #   start_freq: 400000000.0
+  #   stop_freq: 480000000.0
+  #   enabled: false
+
+  - name: FM Broadcast
+    start_freq: 88000000.0
+    stop_freq: 108000000.0
+    threshold_db: -40.0
+    min_duration_ms: 1000.0
+    enabled: false
+
+  - name: Air Band VHF
+    start_freq: 118000000.0
+    stop_freq: 137000000.0
+    threshold_db: -60.0
+    min_duration_ms: 100.0
+    enabled: false
+    
+  - name: LTE Band 7 DL
+    start_freq: 2620000000.0
+    stop_freq: 2690000000.0
+    threshold_db: -55.0
+    min_duration_ms: 200.0
+    enabled: false
+
+detection:
+  noise_floor_averaging: 100
+  impulse_threshold_db: 20.0
+  periodic_check_interval: 60.0
+  min_event_gap_ms: 500.0
+  fft_size: 512  # Уменьшено для ускорения (было 1024)
+  overlap: 0.5
+
+output:
+  database: events.db
+  log_level: INFO
+  reports_dir: reports

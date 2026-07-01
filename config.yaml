@@ -1,0 +1,28 @@
+device:
+  type: rtlsdr
+  sample_rate: 2000000.0
+  gain: 40  # Высокое усиление для поиска слабых сигналов в комнате
+  ppm_correction: 0
+  device_index: 0
+
+ranges:
+  - name: "Drone 868"
+    start_freq: 868000000.0
+    stop_freq: 870000000.0
+    threshold_db: -55.0
+    min_duration_ms: 10.0
+    enabled: true
+
+  - name: "Drone 1.2G"
+    start_freq: 1279000000.0
+    stop_freq: 1281000000.0
+    threshold_db: -55.0
+    min_duration_ms: 10.0
+    enabled: true
+
+detection:
+  noise_floor_averaging: 50 # Быстрая адаптация к фону
+  impulse_threshold_db: 10.0 # Реагировать на всплески
+  periodic_check_interval: 5.0
+  min_event_gap_ms: 100.0
+  fft_size: 1024

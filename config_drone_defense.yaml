@@ -1,0 +1,27 @@
+device:
+  type: rtlsdr
+  sample_rate: 2000000.0
+  gain: 40  # Максимальное усиление для дальнего обнаружения
+  ppm_correction: 0
+  device_index: 0
+
+ranges:
+  - name: "Crossfire/ELRS 868 (EU)"
+    start_freq: 868000000.0
+    stop_freq: 870000000.0
+    threshold_db: -55.0
+    min_duration_ms: 10.0
+    enabled: true
+
+  - name: "Drone Video/Telemetry 1.2G"
+    start_freq: 1279000000.0
+    stop_freq: 1281000000.0
+    threshold_db: -55.0
+    min_duration_ms: 10.0
+    enabled: true
+
+detection:
+  noise_floor_averaging: 50     # Быстрая адаптация к фону
+  impulse_threshold_db: 15.0    # Чувствительность к импульсам выше
+  fft_size: 1024
+  overlap: 0.5

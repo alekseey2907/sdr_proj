@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rf-event-analyzer"
+version = "1.0.0"
+description = "Professional RF Event Analyzer for engineers and contractors"
+readme = "README.md"
+license = {text = "Proprietary"}
+requires-python = ">=3.9"
+authors = [
+    {name = "RF Solutions", email = "support@rf-analyzer.pro"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "pyrtlsdr>=0.3.0,<0.4",
+    "PySide6>=6.5.0",
+    "reportlab>=4.0.0",
+    "matplotlib>=3.7.0",
+    "jinja2>=3.1.0",
+    "weasyprint>=59.0",
+]
+
+[project.optional-dependencies]
+hackrf = ["pyhackrf>=1.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.0.270",
+]
+
+[project.scripts]
+rf-analyzer = "rf_analyzer.cli:main"
+rf-analyzer-gui = "rf_analyzer.gui.main_window:run_gui"
+
+[project.gui-scripts]
+rf-analyzer-gui = "rf_analyzer.gui.main_window:run_gui"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+ignore = ["E501"]
