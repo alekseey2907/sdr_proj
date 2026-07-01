@@ -4,6 +4,7 @@ param(
     [ValidateSet("rf", "acoustic", "all")]
     [string]$Project = "all",
     [string]$Branch = "main",
+    [string]$Tag = "",
     [string]$RfRoot = "/opt/skyshield",
     [string]$AcousticRoot = "/opt/skyshield-acoustic",
     [string]$RfBackendService = "skyshield-backend.service",
@@ -31,7 +32,7 @@ function Invoke-RemoteScript {
     param([string]$ScriptBody)
     $normalized = $ScriptBody -replace "`r`n", "`n"
     $normalized = $normalized -replace "`r", "`n"
-    $normalized | & ssh "$User@$TargetHost" "bash -s"
+    $normalized | & ssh "$User@$TargetHost" "tr -d '\r' | bash -s"
     if ($LASTEXITCODE -ne 0) {
         throw "Remote script failed"
     }
@@ -46,6 +47,22 @@ function Update-Project {
 
     Write-Host "`n=== Updating $Name project on $TargetHost ===" -ForegroundColor Cyan
 
+    if ($Tag) {
+        $checkoutBlock = @"
+git fetch --all --tags --prune
+git checkout --force 'tags/$Tag'
+printf '%s\n' '$Tag' > VERSION
+"@
+    }
+    else {
+        $checkoutBlock = @"
+git fetch --all --prune
+git checkout '$Branch'
+git pull --ff-only origin '$Branch'
+git rev-parse --short HEAD > VERSION
+"@
+    }
+
     $installBlock = @"
 set -eu
 cd '$Root'
@@ -53,12 +70,11 @@ if [ ! -d .git ]; then
   echo 'ERROR: no .git in $Root. Clone repo first.'
   exit 2
 fi
-git fetch --all --prune
-git checkout '$Branch'
-git pull --ff-only origin '$Branch'
+$checkoutBlock
 "@
 
     if (-not $SkipInstall) {
+        $installBlock += "`n"
         $installBlock += @"
 chmod +x scripts/orangepi_install.sh
 ./scripts/orangepi_install.sh

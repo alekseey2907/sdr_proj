@@ -9,9 +9,11 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+
+from app.security import require_admin, require_device_token
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +223,7 @@ def _send_vk_to_all(message: str, settings: dict[str, Any]) -> None:
 
 
 @router.get("/settings", response_class=HTMLResponse)
-async def settings_page():
+async def settings_page(_admin: None = Depends(require_admin)):
     return HTMLResponse(
         """
 <!DOCTYPE html>
@@ -350,12 +352,15 @@ async def settings_page():
 
 
 @router.get("/api/v1/notifications/settings")
-async def get_notification_settings():
+async def get_notification_settings(_admin: None = Depends(require_admin)):
     return _public_settings(_load_settings())
 
 
 @router.post("/api/v1/notifications/settings")
-async def update_notification_settings(payload: NotificationSettingsUpdate):
+async def update_notification_settings(
+    payload: NotificationSettingsUpdate,
+    _admin: None = Depends(require_admin),
+):
     settings = _load_settings()
     vk = settings.setdefault("vk", {})
     sources = settings.setdefault("sources", {})
@@ -383,7 +388,11 @@ async def update_notification_settings(payload: NotificationSettingsUpdate):
 
 
 @router.post("/api/v1/notifications/alert")
-async def receive_alert(payload: AlertPayload, background_tasks: BackgroundTasks):
+async def receive_alert(
+    payload: AlertPayload,
+    background_tasks: BackgroundTasks,
+    _auth: None = Depends(require_device_token),
+):
     settings = _load_settings()
     source = payload.source.strip().lower()
     source_config = _source_settings(settings, source)
@@ -410,7 +419,10 @@ async def receive_alert(payload: AlertPayload, background_tasks: BackgroundTasks
 
 
 @router.post("/api/v1/notifications/test")
-async def send_test_notification(background_tasks: BackgroundTasks):
+async def send_test_notification(
+    background_tasks: BackgroundTasks,
+    _admin: None = Depends(require_admin),
+):
     settings = _load_settings()
     vk = settings.get("vk", {})
     if not vk.get("bot_token") or not _split_peer_ids(vk.get("peer_ids", [])):

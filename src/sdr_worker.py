@@ -1,7 +1,10 @@
 import json
 import os
+import secrets
 import time
+import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import requests
@@ -35,6 +38,95 @@ def _env_bool(name, default=False):
     if value is None:
         return default
     return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _identity_paths():
+    """Возможные места хранения идентичности устройства (по приоритету)."""
+    configured = os.getenv("DEVICE_IDENTITY_PATH")
+    candidates = []
+    if configured:
+        candidates.append(Path(configured))
+    if os.name != "nt":
+        candidates.append(Path("/etc/skyshield/device.json"))
+    candidates.append(Path(PROJECT_DIR) / "backend" / "data" / "device.json")
+    return candidates
+
+
+def _load_identity_file():
+    for path in _identity_paths():
+        try:
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return data, path
+        except (OSError, json.JSONDecodeError):
+            continue
+    return {}, None
+
+
+def _save_identity_file(identity):
+    for path in _identity_paths():
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(path.suffix + ".tmp")
+            tmp.write_text(json.dumps(identity, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp.replace(path)
+            return path
+        except OSError:
+            continue
+    return None
+
+
+def _generate_device_id():
+    """Стабильный уникальный ID на основе machine-id, иначе случайный."""
+    machine_id = ""
+    for mid_path in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
+        try:
+            with open(mid_path, "r", encoding="utf-8") as handle:
+                machine_id = handle.read().strip()
+                if machine_id:
+                    break
+        except OSError:
+            continue
+    if machine_id:
+        suffix = machine_id[-8:].upper()
+    else:
+        suffix = uuid.uuid4().hex[-8:].upper()
+    return f"SKY-{suffix}"
+
+
+def _resolve_identity():
+    """Возвращает (device_id, device_token), генерируя и сохраняя при первом старте."""
+    device_id = (os.getenv("DEVICE_ID") or "").strip()
+    device_token = (os.getenv("DEVICE_TOKEN") or "").strip()
+
+    if device_id and device_token:
+        return device_id, device_token
+
+    identity, _ = _load_identity_file()
+    if not device_id:
+        device_id = str(identity.get("device_id") or "").strip()
+    if not device_token:
+        device_token = str(identity.get("device_token") or "").strip()
+
+    generated = False
+    if not device_id:
+        device_id = _generate_device_id()
+        generated = True
+    if not device_token:
+        device_token = secrets.token_hex(24)
+        generated = True
+
+    if generated:
+        saved_path = _save_identity_file({"device_id": device_id, "device_token": device_token})
+        print(
+            "[identity] Сгенерирована идентичность устройства "
+            f"device_id={device_id} (сохранено: {saved_path or 'не удалось записать'})."
+        )
+        print("[identity] Пропишите DEVICE_ID и DEVICE_TOKEN в /etc/skyshield/skyshield.env для стабильности.")
+
+    return device_id, device_token
+
 
 
 def _default_scan_channels():
@@ -71,7 +163,8 @@ def _load_scan_channels():
 
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api/v1/telemetry/")
-DEVICE_ID = os.getenv("DEVICE_ID", "DRONE-HUNTER-01")
+DEVICE_ID, DEVICE_TOKEN = _resolve_identity()
+DEVICE_AUTH_HEADERS = {"X-Device-Token": DEVICE_TOKEN} if DEVICE_TOKEN else {}
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN", "")
 TG_CHAT_ID = os.getenv("TG_CHAT_ID", "")
 NOTIFICATION_API_URL = os.getenv("NOTIFICATION_API_URL", "http://127.0.0.1:8000/api/v1/notifications/alert")
@@ -298,7 +391,7 @@ def send_notification_alert(level, dominant_freq_hz, detection=None):
     }
 
     try:
-        response = requests.post(NOTIFICATION_API_URL, json=payload, timeout=2)
+        response = requests.post(NOTIFICATION_API_URL, json=payload, headers=DEVICE_AUTH_HEADERS, timeout=2)
         response.raise_for_status()
         result = response.json()
         if result.get("accepted"):
@@ -905,7 +998,7 @@ def main():
             }
 
             try:
-                response = requests.post(API_URL, json=payload, timeout=2)
+                response = requests.post(API_URL, json=payload, headers=DEVICE_AUTH_HEADERS, timeout=2)
                 if response.status_code == 201:
                     print(
                         f"[tx] [SDR] live={rf_level:.1f} cycle={last_cycle_level if last_cycle_level is not None else 0:.1f} "

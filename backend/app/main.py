@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
 from app.database import engine, Base
-from app.routers import telemetry, reports, dashboard, notifications
+from app.routers import telemetry, reports, dashboard, notifications, devices
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +31,7 @@ app.include_router(telemetry.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(dashboard.router)
 app.include_router(notifications.router)
+app.include_router(devices.router)
 
 @app.get("/health")
 async def health_check():

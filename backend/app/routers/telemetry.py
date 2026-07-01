@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.database import AsyncSessionLocal, get_db
 from app.models.telemetry import Telemetry
 from app.schemas.telemetry import TelemetryCreate, TelemetryResponse
+from app.security import require_device_token
 
 logger = logging.getLogger(__name__)
 
@@ -173,9 +174,13 @@ async def _persist_telemetry(data: TelemetryCreate) -> None:
         logger.warning("Telemetry history write skipped: %s", exc)
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_telemetry(data: TelemetryCreate, background_tasks: BackgroundTasks):
+async def create_telemetry(
+    data: TelemetryCreate,
+    background_tasks: BackgroundTasks,
+    _auth: None = Depends(require_device_token),
+):
     """
-    Прием телеметрии от ESP32
+    Прием телеметрии от устройства (требует X-Device-Token, если настроен)
     """
     response = _build_live_telemetry_response(data)
     LATEST_TELEMETRY[data.device_id] = response
